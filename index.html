@@ -13,18 +13,22 @@ body {
     padding:20px;
 }
 
-textarea {
+textarea, input {
     width:100%;
-    height:120px;
     background:#111;
     color:#00ffcc;
     border:1px solid #333;
     padding:10px;
     font-size:14px;
+    margin-bottom:10px;
+}
+
+textarea {
+    height:120px;
 }
 
 button {
-    margin:5px;
+    margin:5px 5px 5px 0;
     padding:10px;
     background:#111;
     color:#00ffcc;
@@ -44,24 +48,39 @@ button {
 
 <body>
 
-<h2>NEXUS-9 Cipher</h2>
+<h2>🔐 NEXUS-9 Cipher</h2>
+
+<!-- PASSWORD FIELD -->
+<input type="password" id="pass" placeholder="Enter system password...">
 
 <textarea id="input" placeholder="Type emojis, symbols, text..."></textarea>
-<br>
 
 <button onclick="encode()">ENCODE</button>
 <button onclick="decode()">DECODE</button>
+<button onclick="copyOut()">COPY OUTPUT</button>
 
 <div id="out"></div>
 
 <script>
 
+const SYSTEM_PASSWORD = "nexus9"; // 🔐 change this
+
 const emojis = ["🔥","⚡","🧿","💠","🌀"];
+
+// ---------------- PASSWORD CHECK ----------------
+function checkPassword(){
+    let p = document.getElementById("pass").value;
+    if(p !== SYSTEM_PASSWORD){
+        document.getElementById("out").innerText = "ACCESS DENIED ❌ WRONG PASSWORD";
+        return false;
+    }
+    return true;
+}
 
 // 1 Unicode safe normalize
 const UNI6 = s => s.normalize("NFKC");
 
-// 2 UTF8 Base64 safe encode/decode
+// 2 Base64 UTF-8 safe
 function toBase64(str){
     return btoa(unescape(encodeURIComponent(str)));
 }
@@ -69,7 +88,7 @@ function fromBase64(str){
     return decodeURIComponent(escape(atob(str)));
 }
 
-// 3 Symbol shift (Unicode safe)
+// 3 Symbol shift
 function SSC6(str, enc=true){
     const key = 7;
     return [...str].map(c=>{
@@ -79,7 +98,7 @@ function SSC6(str, enc=true){
 }
 
 // 4 Block reverse
-function BRE6(str, enc=true){
+function BRE6(str){
     let size = 4;
     let out = "";
     for(let i=0;i<str.length;i+=size){
@@ -89,7 +108,7 @@ function BRE6(str, enc=true){
     return out;
 }
 
-// 5 Emoji injector
+// 5 Emoji injector (auto removable)
 function ENI6(str, enc=true){
     if(enc){
         let out = "";
@@ -108,18 +127,22 @@ function HMF6(str, enc=true){
     if(enc){
         return [...str].map(c=>c.codePointAt(0).toString(16)).join("-");
     } else {
-        return str.split("-").map(h=>String.fromCodePoint(parseInt(h,16))).join("");
+        return str.split("-")
+        .map(h=>String.fromCodePoint(parseInt(h,16)))
+        .join("");
     }
 }
 
 // ---------------- ENCODE ----------------
 function encode(){
+    if(!checkPassword()) return;
+
     let t = document.getElementById("input").value;
 
     let r = UNI6(t);
     r = toBase64(r);
     r = SSC6(r,true);
-    r = BRE6(r,true);
+    r = BRE6(r);
     r = ENI6(r,true);
     r = HMF6(r,true);
 
@@ -128,16 +151,27 @@ function encode(){
 
 // ---------------- DECODE ----------------
 function decode(){
+    if(!checkPassword()) return;
+
     let t = document.getElementById("input").value;
 
     let r = HMF6(t,false);
     r = ENI6(r,false);
-    r = BRE6(r,false);
+    r = BRE6(r);
     r = SSC6(r,false);
     r = fromBase64(r);
     r = UNI6(r);
 
     document.getElementById("out").innerText = r;
+}
+
+// ---------------- COPY OUTPUT ----------------
+function copyOut(){
+    let text = document.getElementById("out").innerText;
+
+    navigator.clipboard.writeText(text).then(()=>{
+        document.getElementById("out").innerText += "\n\nCOPIED ✔";
+    });
 }
 
 </script>
