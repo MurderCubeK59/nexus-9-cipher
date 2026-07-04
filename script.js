@@ -47,9 +47,13 @@ function toBase64(str){
 }
 
 function fromBase64(str){
-    const bin = atob(str);
-    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
-    return new TextDecoder().decode(bytes);
+    try {
+        const bin = atob(str);
+        const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+        return new TextDecoder().decode(bytes);
+    } catch(e){
+        return "DECODE ERROR ❌ INVALID DATA";
+    }
 }
 
 /* ---------------- LAYERS ---------------- */
@@ -102,12 +106,12 @@ async function encode(){
 
     let t = document.getElementById("input").value;
 
-    let r = UNI(t);
-    r = toBase64(r);
-    r = shift(r,true);
+    r = dehex(t);
+    r = shift(r,false);
+    r = denoise(r);
     r = swap(r);
-    r = noise(r);
-    r = hex(r);
+    r = fromBase64(r);
+    r = UNI(r);
 
     document.getElementById("out").innerText = r;
 }
