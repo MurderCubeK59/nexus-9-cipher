@@ -2,204 +2,33 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>NEXUS-9 Cipher Encoder</title>
+<title>NEXUS-9 Terminal</title>
 <link rel="icon" href="assets/icon.png">
-
-<style>
-body {
-    background:#0b0b0b;
-    color:#00ffcc;
-    font-family:monospace;
-    padding:20px;
-}
-
-input, textarea {
-    width:100%;
-    background:#111;
-    color:#00ffcc;
-    border:1px solid #333;
-    padding:10px;
-    margin-bottom:10px;
-}
-
-textarea { height:120px; }
-
-button {
-    margin:5px;
-    padding:10px;
-    background:#111;
-    color:#00ffcc;
-    border:1px solid #333;
-    cursor:pointer;
-}
-
-#out {
-    margin-top:15px;
-    white-space:pre-wrap;
-    background:#111;
-    padding:10px;
-    border:1px solid #333;
-}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<h2>🔐 NEXUS Cipher System</h2>
+<div id="loginBox">
+    <h2>🔐 NEXUS-9 ACCESS TERMINAL</h2>
+    <input type="password" id="pass" placeholder="Enter Access Key">
+    <button onclick="login()">LOGIN</button>
+    <div id="status"></div>
+</div>
 
-<input type="password" id="pass" placeholder="Enter system password">
+<div id="app" class="hidden">
+    <h2>🧠 NEXUS-9 CIPHER CORE</h2>
 
-<textarea id="input" placeholder="Type text / emojis / symbols..."></textarea>
+    <textarea id="input" placeholder="Enter text / emojis / symbols"></textarea>
 
-<button onclick="login()">LOGIN</button>
-<button onclick="encode()">ENCODE</button>
-<button onclick="decode()">DECODE</button>
-<button onclick="copyOut()">COPY OUTPUT</button>
+    <button onclick="encode()">ENCODE</button>
+    <button onclick="decode()">DECODE</button>
+    <button onclick="copyOut()">COPY</button>
 
-<div id="out"></div>
+    <div id="out"></div>
+</div>
 
-<script>
-
-let SESSION_TOKEN = null;
-
-const emojis = ["🔥","⚡","🧿","💠","🌀"];
-
-// ---------------- SERVER LOGIN ----------------
-async function login(){
-    let p = document.getElementById("pass").value;
-
-    let res = await fetch("http://localhost:3000/login", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ pass: p })
-    });
-
-    let data = await res.json();
-
-    if(!data.ok){
-        document.getElementById("out").innerText = "ACCESS DENIED ❌";
-        return;
-    }
-
-    SESSION_TOKEN = data.token;
-    document.getElementById("out").innerText = "ACCESS GRANTED ✔ SESSION ACTIVE";
-}
-
-// ---------------- VERIFY SESSION ----------------
-async function verifySession(){
-    if(!SESSION_TOKEN){
-        document.getElementById("out").innerText = "NO SESSION ❌ LOGIN FIRST";
-        return false;
-    }
-
-    let res = await fetch("http://localhost:3000/verify", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ token: SESSION_TOKEN })
-    });
-
-    let data = await res.json();
-
-    if(!data.ok){
-        SESSION_TOKEN = null;
-        document.getElementById("out").innerText =
-        data.expired ? "SESSION EXPIRED ⏱" : "INVALID SESSION ❌";
-        return false;
-    }
-
-    return true;
-}
-
-// ---------------- CIPHER LAYERS ----------------
-const UNI6 = s => s.normalize("NFKC");
-
-function toBase64(str){
-    return btoa(unescape(encodeURIComponent(str)));
-}
-function fromBase64(str){
-    return decodeURIComponent(escape(atob(str)));
-}
-
-function SSC6(str, enc=true){
-    const key = 7;
-    return [...str].map(c=>{
-        let code = c.codePointAt(0);
-        return String.fromCodePoint(enc ? code + key : code - key);
-    }).join("");
-}
-
-function BRE6(str){
-    let size = 4;
-    let out = "";
-    for(let i=0;i<str.length;i+=size){
-        let block = str.slice(i,i+size);
-        out += block.split("").reverse().join("");
-    }
-    return out;
-}
-
-function ENI6(str, enc=true){
-    if(enc){
-        let out = "";
-        for(let i=0;i<str.length;i++){
-            out += str[i];
-            if(i % 5 === 0) out += emojis[i % emojis.length];
-        }
-        return out;
-    } else {
-        return str.replace(/[\u{1F300}-\u{1FAFF}]/gu,"");
-    }
-}
-
-function HMF6(str, enc=true){
-    if(enc){
-        return [...str].map(c=>c.codePointAt(0).toString(16)).join("-");
-    } else {
-        return str.split("-")
-        .map(h=>String.fromCodePoint(parseInt(h,16)))
-        .join("");
-    }
-}
-
-// ---------------- ENCODE ----------------
-async function encode(){
-    if(!(await verifySession())) return;
-
-    let t = document.getElementById("input").value;
-
-    let r = UNI6(t);
-    r = toBase64(r);
-    r = SSC6(r,true);
-    r = BRE6(r);
-    r = ENI6(r,true);
-    r = HMF6(r,true);
-
-    document.getElementById("out").innerText = r;
-}
-
-// ---------------- DECODE ----------------
-async function decode(){
-    if(!(await verifySession())) return;
-
-    let t = document.getElementById("input").value;
-
-    let r = HMF6(t,false);
-    r = ENI6(r,false);
-    r = BRE6(r);
-    r = SSC6(r,false);
-    r = fromBase64(r);
-    r = UNI6(r);
-
-    document.getElementById("out").innerText = r;
-}
-
-// ---------------- COPY ----------------
-function copyOut(){
-    let text = document.getElementById("out").innerText;
-    navigator.clipboard.writeText(text);
-}
-
-</script>
-
+<script src="config.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
