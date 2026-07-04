@@ -13,22 +13,19 @@ body {
     padding:20px;
 }
 
-textarea, input {
+input, textarea {
     width:100%;
     background:#111;
     color:#00ffcc;
     border:1px solid #333;
     padding:10px;
-    font-size:14px;
     margin-bottom:10px;
 }
 
-textarea {
-    height:120px;
-}
+textarea { height:120px; }
 
 button {
-    margin:5px 5px 5px 0;
+    margin:5px;
     padding:10px;
     background:#111;
     color:#00ffcc;
@@ -48,13 +45,13 @@ button {
 
 <body>
 
-<h2>🔐 NEXUS-9 Cipher</h2>
+<h2>🔐 NEXUS Cipher System</h2>
 
-<!-- PASSWORD FIELD -->
-<input type="password" id="pass" placeholder="Enter system password...">
+<input type="password" id="pass" placeholder="Enter system password">
 
-<textarea id="input" placeholder="Type emojis, symbols, text..."></textarea>
+<textarea id="input" placeholder="Type text / emojis / symbols..."></textarea>
 
+<button onclick="login()">LOGIN</button>
 <button onclick="encode()">ENCODE</button>
 <button onclick="decode()">DECODE</button>
 <button onclick="copyOut()">COPY OUTPUT</button>
@@ -63,24 +60,59 @@ button {
 
 <script>
 
-const SYSTEM_PASSWORD = "iL0veSalm0n";
+let SESSION_TOKEN = null;
 
-const emojis = [" "," "," "," "," "];
+const emojis = ["🔥","⚡","🧿","💠","🌀"];
 
-// ---------------- PASSWORD CHECK ----------------
-function checkPassword(){
+// ---------------- SERVER LOGIN ----------------
+async function login(){
     let p = document.getElementById("pass").value;
-    if(p !== SYSTEM_PASSWORD){
-        document.getElementById("out").innerText = "ACCESS DENIED ❌ WRONG PASSWORD";
+
+    let res = await fetch("http://localhost:3000/login", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ pass: p })
+    });
+
+    let data = await res.json();
+
+    if(!data.ok){
+        document.getElementById("out").innerText = "ACCESS DENIED ❌";
+        return;
+    }
+
+    SESSION_TOKEN = data.token;
+    document.getElementById("out").innerText = "ACCESS GRANTED ✔ SESSION ACTIVE";
+}
+
+// ---------------- VERIFY SESSION ----------------
+async function verifySession(){
+    if(!SESSION_TOKEN){
+        document.getElementById("out").innerText = "NO SESSION ❌ LOGIN FIRST";
         return false;
     }
+
+    let res = await fetch("http://localhost:3000/verify", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ token: SESSION_TOKEN })
+    });
+
+    let data = await res.json();
+
+    if(!data.ok){
+        SESSION_TOKEN = null;
+        document.getElementById("out").innerText =
+        data.expired ? "SESSION EXPIRED ⏱" : "INVALID SESSION ❌";
+        return false;
+    }
+
     return true;
 }
 
-// 1 Unicode safe normalize
+// ---------------- CIPHER LAYERS ----------------
 const UNI6 = s => s.normalize("NFKC");
 
-// 2 Base64 UTF-8 safe
 function toBase64(str){
     return btoa(unescape(encodeURIComponent(str)));
 }
@@ -88,7 +120,6 @@ function fromBase64(str){
     return decodeURIComponent(escape(atob(str)));
 }
 
-// 3 Symbol shift
 function SSC6(str, enc=true){
     const key = 7;
     return [...str].map(c=>{
@@ -97,7 +128,6 @@ function SSC6(str, enc=true){
     }).join("");
 }
 
-// 4 Block reverse
 function BRE6(str){
     let size = 4;
     let out = "";
@@ -108,7 +138,6 @@ function BRE6(str){
     return out;
 }
 
-// 5 Emoji injector (auto removable)
 function ENI6(str, enc=true){
     if(enc){
         let out = "";
@@ -122,7 +151,6 @@ function ENI6(str, enc=true){
     }
 }
 
-// 6 Hex finalizer
 function HMF6(str, enc=true){
     if(enc){
         return [...str].map(c=>c.codePointAt(0).toString(16)).join("-");
@@ -134,8 +162,8 @@ function HMF6(str, enc=true){
 }
 
 // ---------------- ENCODE ----------------
-function encode(){
-    if(!checkPassword()) return;
+async function encode(){
+    if(!(await verifySession())) return;
 
     let t = document.getElementById("input").value;
 
@@ -150,8 +178,8 @@ function encode(){
 }
 
 // ---------------- DECODE ----------------
-function decode(){
-    if(!checkPassword()) return;
+async function decode(){
+    if(!(await verifySession())) return;
 
     let t = document.getElementById("input").value;
 
@@ -165,13 +193,10 @@ function decode(){
     document.getElementById("out").innerText = r;
 }
 
-// ---------------- COPY OUTPUT ----------------
+// ---------------- COPY ----------------
 function copyOut(){
     let text = document.getElementById("out").innerText;
-
     navigator.clipboard.writeText(text);
-
-    alert("Copied ✔");
 }
 
 </script>
