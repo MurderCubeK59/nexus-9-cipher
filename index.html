@@ -1,14 +1,44 @@
-<input type="password" id="pass" placeholder="Password">
-<button onclick="login()">LOGIN</button>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>NEXUS-9 Cipher Decoder</title>
+<link rel="stylesheet" href="style.css">
+</head>
 
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginBox">
+    <h2>NEXUS-9 Cipher [ACCESS TERMINAL]</h2>
+
+    <input type="password" id="pass" placeholder="Enter Password">
+
+    <button onclick="login()">LOGIN</button>
+
+    <div id="status"></div>
+</div>
+
+<!-- MAIN APP -->
 <div id="app" class="hidden">
 
-<textarea id="input"></textarea>
+    <h2>NEXUS-9 CIPHER Decoder</h2>
 
-<button onclick="encode()">ENCODE</button>
-<button onclick="decode()">DECODE</button>
-<button onclick="copyOut()">COPY</button>
+    <textarea id="input" placeholder="Type text / emojis / symbols..."></textarea>
 
-<div id="out"></div>
+    <div class="btnRow">
+        <button onclick="encode()">ENCODE</button>
+        <button onclick="decode()">DECODE</button>
+        <button onclick="copyOut()">COPY</button>
+    </div>
+
+    <div id="out"></div>
 
 </div>
+
+<!-- SCRIPTS -->
+<script src="config.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>
