@@ -60,10 +60,20 @@ function shift(str, seed, enc=true){
 /* block shuffle */
 function blockSwap(str){
     let a = str.split("");
+
+    let pairs = [];
+
     for(let i=0;i<a.length-1;i+=2){
-        [a[i],a[i+1]]=[a[i+1],a[i]];
+        pairs.push([a[i], a[i+1]]);
     }
-    return a.join("");
+
+    let swapped = pairs.map(p=>[p[1],p[0]]).flat();
+
+    if(a.length % 2 !== 0){
+        swapped.push(a[a.length-1]);
+    }
+
+    return swapped.join("");
 }
 
 /* emoji noise */
