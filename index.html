@@ -169,9 +169,9 @@ function decode(){
 function copyOut(){
     let text = document.getElementById("out").innerText;
 
-    navigator.clipboard.writeText(text).then(()=>{
-        document.getElementById("out").innerText += "\n\nCOPIED ✔";
-    });
+    navigator.clipboard.writeText(text);
+
+    alert("Copied ✔");
 }
 
 </script>
