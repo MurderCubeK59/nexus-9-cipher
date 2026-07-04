@@ -2,33 +2,179 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>NEXUS-9 Cipher Encoder Terminal</title>
-<link rel="icon" href="assets/icon.png">
-<link rel="stylesheet" href="style.css">
+<title>NEXUS-9 Cipher</title>
+
+<style>
+body {
+    background:#0b0b0b;
+    color:#00ffcc;
+    font-family:monospace;
+    padding:20px;
+}
+
+textarea, input {
+    width:100%;
+    padding:10px;
+    background:#111;
+    color:#00ffcc;
+    border:1px solid #333;
+    margin-bottom:10px;
+}
+
+button {
+    padding:10px;
+    margin:5px;
+    background:#111;
+    border:1px solid #333;
+    color:#00ffcc;
+    cursor:pointer;
+}
+
+#out {
+    margin-top:10px;
+    background:#111;
+    padding:10px;
+    border:1px solid #333;
+    white-space:pre-wrap;
+}
+
+.hidden { display:none; }
+</style>
 </head>
 
 <body>
 
-<div id="loginBox">
-    <h2>NEXUS-9 Cipher [ACCESS TERMINAL]</h2>
-    <input type="password" id="pass" placeholder="Enter Access Key">
-    <button onclick="login()">LOGIN</button>
-    <div id="status"></div>
-</div>
+<h2>🔐 NEXUS-9 Cipher System</h2>
 
-<div id="app" class="hidden">
-    <h2>NEXUS-9 CIPHER Encoder</h2>
+<input type="password" id="pass" placeholder="Password">
+<button onclick="login()">LOGIN</button>
 
-    <textarea id="input" placeholder="Enter text / emojis / symbols"></textarea>
+<textarea id="input" placeholder="Enter text / emojis / symbols"></textarea>
 
-    <button onclick="encode()">ENCODE</button>
-    <button onclick="decode()">DECODE</button>
-    <button onclick="copyOut()">COPY</button>
+<button onclick="encode()">ENCODE</button>
+<button onclick="decode()">DECODE</button>
+<button onclick="copyOut()">COPY</button>
 
-    <div id="out"></div>
-</div>
+<div id="out"></div>
 
-<script src="config.js"></script>
-<script src="script.js"></script>
+<script>
+
+let SESSION = false;
+
+const emojis = ["🔥","⚡","🧿","💠","🌀"];
+
+/* ---------------- LOGIN (local simple for now) ---------------- */
+function login(){
+    if(document.getElementById("pass").value === "nexus9"){
+        SESSION = true;
+        document.getElementById("out").innerText = "ACCESS GRANTED ✔";
+    } else {
+        document.getElementById("out").innerText = "ACCESS DENIED ❌";
+    }
+}
+
+/* ---------------- UTF-8 SAFE BASE64 ---------------- */
+function toBase64(str){
+    const bytes = new TextEncoder().encode(str);
+    let bin = "";
+    bytes.forEach(b => bin += String.fromCharCode(b));
+    return btoa(bin);
+}
+
+function fromBase64(str){
+    const bin = atob(str);
+    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+}
+
+/* ---------------- LAYERS ---------------- */
+
+const UNI = s => s.normalize("NFKC");
+
+/* reversible shift */
+function shift(str, enc=true){
+    const key = 7;
+    return [...str].map((c,i)=>{
+        let code = c.codePointAt(0);
+        let k = (key + i) % 7;
+        return String.fromCodePoint(enc ? code + k : code - k);
+    }).join("");
+}
+
+/* reversible swap (PAIR SWAP) */
+function swap(str){
+    let a = str.split("");
+    for(let i=0;i<a.length-1;i+=2){
+        [a[i],a[i+1]]=[a[i+1],a[i]];
+    }
+    return a.join("");
+}
+
+/* emoji noise */
+function noise(str){
+    let out="";
+    for(let i=0;i<str.length;i++){
+        out += str[i];
+        if(i%4===0) out += emojis[i%emojis.length];
+    }
+    return out;
+}
+
+function denoise(str){
+    return str.replace(/[\u{1F300}-\u{1FAFF}]/gu,"");
+}
+
+/* hex */
+function hex(str){
+    return [...str].map(c=>c.codePointAt(0).toString(16)).join("-");
+}
+
+function dehex(str){
+    return str.split("-")
+    .map(x=>String.fromCodePoint(parseInt(x,16)))
+    .join("");
+}
+
+/* ---------------- ENCODE ---------------- */
+function encode(){
+    if(!SESSION) return;
+
+    let t = document.getElementById("input").value;
+
+    let r = UNI(t);
+    r = toBase64(r);
+    r = shift(r,true);
+    r = swap(r);
+    r = noise(r);
+    r = hex(r);
+
+    document.getElementById("out").innerText = r;
+}
+
+/* ---------------- DECODE ---------------- */
+function decode(){
+    if(!SESSION) return;
+
+    let t = document.getElementById("input").value;
+
+    let r = dehex(t);
+    r = denoise(r);
+    r = swap(r);
+    r = shift(r,false);
+    r = fromBase64(r);
+    r = UNI(r);
+
+    document.getElementById("out").innerText = r;
+}
+
+/* ---------------- COPY ---------------- */
+function copyOut(){
+    navigator.clipboard.writeText(
+        document.getElementById("out").innerText
+    );
+}
+
+</script>
+
 </body>
 </html>
