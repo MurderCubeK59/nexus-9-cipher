@@ -20,10 +20,11 @@ textarea {
     color:#00ffcc;
     border:1px solid #333;
     padding:10px;
+    font-size:14px;
 }
 
 button {
-    margin-top:10px;
+    margin:5px;
     padding:10px;
     background:#111;
     color:#00ffcc;
@@ -43,9 +44,9 @@ button {
 
 <body>
 
-<h2>NEXUS-9 Cipher (Fixed Build)</h2>
+<h2>🔐 NEXUS-6 Cipher (Emoji Safe)</h2>
 
-<textarea id="input" placeholder="Enter text..."></textarea>
+<textarea id="input" placeholder="Type emojis, symbols, text..."></textarea>
 <br>
 
 <button onclick="encode()">ENCODE</button>
@@ -54,112 +55,91 @@ button {
 <div id="out"></div>
 
 <script>
-// 1 sanitize
-function ISC9(s){ return s.normalize("NFKC"); }
 
-// 2 simple substitution
-function SSM9(s, enc=true){
-    const map = { a:"@", b:"8", c:"(", d:"|)", e:"3", f:"ph", g:"9", h:"#", i:"!", o:"0", s:"$", t:"7" };
-    const rev = Object.fromEntries(Object.entries(map).map(([k,v])=>[v,k]));
+const emojis = ["🔥","⚡","🧿","💠","🌀"];
 
+// 1 Unicode safe normalize
+const UNI6 = s => s.normalize("NFKC");
+
+// 2 UTF8 Base64 safe encode/decode
+function toBase64(str){
+    return btoa(unescape(encodeURIComponent(str)));
+}
+function fromBase64(str){
+    return decodeURIComponent(escape(atob(str)));
+}
+
+// 3 Symbol shift (Unicode safe)
+function SSC6(str, enc=true){
+    const key = 7;
+    return [...str].map(c=>{
+        let code = c.codePointAt(0);
+        return String.fromCodePoint(enc ? code + key : code - key);
+    }).join("");
+}
+
+// 4 Block reverse
+function BRE6(str, enc=true){
+    let size = 4;
+    let out = "";
+    for(let i=0;i<str.length;i+=size){
+        let block = str.slice(i,i+size);
+        out += block.split("").reverse().join("");
+    }
+    return out;
+}
+
+// 5 Emoji injector
+function ENI6(str, enc=true){
     if(enc){
-        return [...s.toLowerCase()].map(c=>map[c]||c).join("");
-    } else {
-        let out="";
-        for(let i=0;i<s.length;i++){
-            let found=false;
-            for(let k in rev){
-                if(s.startsWith(k,i)){
-                    out+=rev[k];
-                    i+=k.length-1;
-                    found=true;
-                    break;
-                }
-            }
-            if(!found) out+=s[i];
+        let out = "";
+        for(let i=0;i<str.length;i++){
+            out += str[i];
+            if(i % 5 === 0) out += emojis[i % emojis.length];
         }
         return out;
-    }
-}
-
-// 3 reverse
-const SRE9 = s => s.split("").reverse().join("");
-
-// 4 base64
-const BTL9 = (s,enc=true)=> enc ? btoa(s) : atob(s);
-
-// 5 XOR
-function BSI9(s){
-    const key=23;
-    return [...s].map(c=>String.fromCharCode(c.charCodeAt(0)^key)).join("");
-}
-
-// 6 shuffle (deterministic)
-function shuffle(s){
-    let a=s.split("");
-    for(let i=a.length-1;i>0;i--){
-        let j=(i*7+3)%a.length;
-        [a[i],a[j]]=[a[j],a[i]];
-    }
-    return a.join("");
-}
-
-// 7 noise
-const NIF9 = (s,enc=true)=> enc ? s.split("").join("·") : s.replace(/·/g,"");
-
-// 8 checksum
-function CLE9(s,enc=true){
-    if(enc){
-        let h=0;
-        for(let c of s) h+=c.charCodeAt(0);
-        return s+"::"+h;
     } else {
-        return s.split("::")[0];
+        return str.replace(/[\u{1F300}-\u{1FAFF}]/gu,"");
     }
 }
 
-// 9 hex
-function FCM9(s,enc=true){
+// 6 Hex finalizer
+function HMF6(str, enc=true){
     if(enc){
-        return [...s].map(c=>c.charCodeAt(0).toString(16)).join("-");
+        return [...str].map(c=>c.codePointAt(0).toString(16)).join("-");
     } else {
-        return s.split("-").map(x=>String.fromCharCode(parseInt(x,16))).join("");
+        return str.split("-").map(h=>String.fromCodePoint(parseInt(h,16))).join("");
     }
 }
 
 // ---------------- ENCODE ----------------
 function encode(){
-    let t=document.getElementById("input").value;
+    let t = document.getElementById("input").value;
 
-    let r = ISC9(t);
-    r = SSM9(r,true);
-    r = SRE9(r);
-    r = BTL9(r,true);
-    r = BSI9(r);
-    r = shuffle(r);
-    r = NIF9(r,true);
-    r = CLE9(r,true);
-    r = FCM9(r,true);
+    let r = UNI6(t);
+    r = toBase64(r);
+    r = SSC6(r,true);
+    r = BRE6(r,true);
+    r = ENI6(r,true);
+    r = HMF6(r,true);
 
-    document.getElementById("out").innerText=r;
+    document.getElementById("out").innerText = r;
 }
 
 // ---------------- DECODE ----------------
 function decode(){
-    let t=document.getElementById("input").value;
+    let t = document.getElementById("input").value;
 
-    let r = FCM9(t,false);
-    r = CLE9(r,false);
-    r = NIF9(r,false);
-    r = shuffle(r); // NOTE: same function (deterministic demo)
-    r = BSI9(r);
-    r = BTL9(r,false);
-    r = SRE9(r);
-    r = SSM9(r,false);
-    r = ISC9(r);
+    let r = HMF6(t,false);
+    r = ENI6(r,false);
+    r = BRE6(r,false);
+    r = SSC6(r,false);
+    r = fromBase64(r);
+    r = UNI6(r);
 
-    document.getElementById("out").innerText=r;
+    document.getElementById("out").innerText = r;
 }
+
 </script>
 
 </body>
